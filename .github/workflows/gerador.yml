@@ -32,3 +32,4 @@ jobs:
         git add iptv.m3u8
         git commit -m "Atualização automática" || echo "Nada para commitar"
         git push origin main || echo "Push falhou ou sem alterações"
+
