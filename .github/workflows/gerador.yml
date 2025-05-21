@@ -1,0 +1,38 @@
+name: Gerar IPTV
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Instalar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Instalar yt-dlp
+      run: pip install -U yt-dlp
+
+    - name: Executar script
+      run: python gerar_iptv.py
+
+    - name: Enviar alterações com GITHUB_TOKEN
+      run: |
+        if [ -f iptv.m3u8 ]; then
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git fetch origin main
+          git add iptv.m3u8
+          git commit -m "Atualização automática" || echo "Nada para commitar"
+          git push origin main || echo "Push falhou ou sem alterações"
+        else
+          echo "Arquivo iptv.m3u8 não existe. Nenhum push será feito."
+        fi
