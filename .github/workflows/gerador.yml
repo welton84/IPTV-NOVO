@@ -1,25 +1,39 @@
-name: Gerar IPTV M3U8
+name: Gerar IPTV
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:        # Você pode executar manualmente
   schedule:
-    - cron: '0 12 * * *' # Executa todo dia às 12h UTC
+    - cron: '0 */6 * * *'   # Executa a cada 6 horas
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Instalar dependências
-        run: pip install yt-dlp
-      - name: Executar script
+      - name: Clonar repositório
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Instalar yt-dlp
+        run: pip install -U yt-dlp
+
+      - name: Criar cookies.txt (secreto)
+        if: secrets.COOKIES_TXT != ''
+        run: echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
+
+      - name: Executar gerar_iptv.py
         run: python gerar_iptv.py
-      - name: Commit e push do arquivo gerado
+
+      - name: Confirmar e subir alterações
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add iptv.m3u8
-          git commit -m "Atualiza iptv.m3u8 automático" || echo "Nada para commitar"
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
+          git commit -m "Atualização automática do IPTV"
+          git push
