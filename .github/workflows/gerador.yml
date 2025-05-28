@@ -39,5 +39,3 @@ jobs:
           git add iptv.m3u8
           git commit -m "Atualização automática do IPTV"
           git push
-
-          
