@@ -1,9 +1,9 @@
 name: Gerar IPTV
 
 on:
-  workflow_dispatch:        # Você pode executar manualmente
+  workflow_dispatch:         # Executar manualmente
   schedule:
-    - cron: '0 */6 * * *'   # Executa a cada 6 horas
+    - cron: '0 */6 * * *'    # Executar a cada 6 horas
 
 jobs:
   build:
@@ -21,14 +21,16 @@ jobs:
       - name: Instalar yt-dlp
         run: pip install -U yt-dlp
 
-      - name: Criar cookies.txt (secreto)
-        if: secrets.COOKIES_TXT != ''
-        run: echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
+      - name: Criar cookies.txt (se existir)
+        run: |
+          if [ ! -z "${{ secrets.COOKIES_TXT }}" ]; then
+            echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
+          fi
 
       - name: Executar gerar_iptv.py
         run: python gerar_iptv.py
 
-      - name: Confirmar e subir alterações
+      - name: Subir alterações para o GitHub
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -37,3 +39,5 @@ jobs:
           git add iptv.m3u8
           git commit -m "Atualização automática do IPTV"
           git push
+
+          
