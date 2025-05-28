@@ -1,13 +1,14 @@
 import yt_dlp
 import json
 import os
+import time  # 🕒 ADICIONADO
+
 from yt_dlp.utils import DownloadError
 
 def carregar_urls(caminho='infos.json'):
     try:
         with open(caminho, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            # Aceita tanto "urls" quanto "streamers" para maior flexibilidade
             if "urls" in data:
                 return data.get("urls", [])
             elif "streamers" in data:
@@ -28,7 +29,6 @@ def extrair_stream(video_url, ytdlp):
             link = fmt.get("url", "")
             ext = fmt.get("ext", "")
             protocol = fmt.get("protocol", "")
-            # Aceita formatos mp4 OU m3u8 (HLS) que tenham vídeo e áudio juntos
             if (
                 link
                 and "manifest.googlevideo.com" not in link
@@ -67,7 +67,6 @@ def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=5):
             print(f"[INFO] Processando: {url}")
             try:
                 stream_link = ytdlp.extract_info(url, download=False)
-                # Se for playlist, processa os vídeos
                 if stream_link.get('_type') == 'playlist':
                     entries = stream_link.get('entries', [])[:limite_por_playlist]
                     for entry in entries:
@@ -81,6 +80,7 @@ def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=5):
                             print(f"[OK] Adicionado: {title}")
                         else:
                             print(f"[AVISO] Não foi possível extrair link de {video_url}")
+                        time.sleep(2)  # 🕒 AQUI PARA REDUZIR RISCO DE BLOQUEIO
                 else:
                     title, link = extrair_stream(url, ytdlp)
                     if link:
@@ -88,6 +88,7 @@ def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=5):
                         print(f"[OK] Adicionado: {title}")
                     else:
                         print(f"[AVISO] Não foi possível extrair link de {url}")
+                    time.sleep(2)  # 🕒 AQUI TAMBÉM PARA CASO SEJA UM VÍDEO ÚNICO
             except DownloadError as e:
                 print(f"[ERRO] yt-dlp falhou para {url}: {e}")
             except Exception as e:
