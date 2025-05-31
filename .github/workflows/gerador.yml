@@ -22,11 +22,14 @@ jobs:
         run: pip install -U yt-dlp
 
       - name: Restaurar cookies.txt a partir do segredo
-        if: ${{ secrets.COOKIES_TXT != '' }}
-        run: echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
-
-      - name: Verificar cookies.txt
-        run: head -n 5 cookies.txt
+        run: |
+          if [ -n "${{ secrets.COOKIES_TXT }}" ]; then
+            echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
+            echo "[INFO] cookies.txt restaurado com sucesso."
+          else
+            echo "[ERRO] Segredo COOKIES_TXT não está definido."
+            exit 1
+          fi
 
       - name: Executar o script
         run: python gerar_iptv.py
@@ -34,10 +37,10 @@ jobs:
       - name: Verificar conteúdo do iptv.m3u8
         run: |
           if [ -s iptv.m3u8 ]; then
-            echo "[OK] Arquivo gerado com sucesso:"
+            echo "[OK] Arquivo iptv.m3u8 gerado:"
             head -n 10 iptv.m3u8
           else
-            echo "[ERRO] Arquivo iptv.m3u8 está vazio!"
+            echo "[ERRO] iptv.m3u8 está vazio!"
             exit 1
           fi
 
@@ -47,5 +50,6 @@ jobs:
           git config user.email "actions@github.com"
           git add iptv.m3u8
           git commit -m "Atualização automática do IPTV"
-          git push || echo "Nada a atualizar."
+          git push || echo "[INFO] Nenhuma alteração para subir."
+
 
