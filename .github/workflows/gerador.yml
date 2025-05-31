@@ -1,9 +1,9 @@
 name: Gerar IPTV
 
 on:
-  workflow_dispatch:         # Executar manualmente
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'    # Executar a cada 6 horas
+    - cron: '0 */6 * * *'  # Executa a cada 6 horas
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
       - name: Clonar repositório
         uses: actions/checkout@v3
 
-      - name: Configurar Python
+      - name: Instalar Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -21,21 +21,31 @@ jobs:
       - name: Instalar yt-dlp
         run: pip install -U yt-dlp
 
-      - name: Criar cookies.txt (se existir)
-        run: |
-          if [ ! -z "${{ secrets.COOKIES_TXT }}" ]; then
-            echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
-          fi
+      - name: Restaurar cookies.txt a partir do segredo
+        if: ${{ secrets.COOKIES_TXT != '' }}
+        run: echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
 
-      - name: Executar gerar_iptv.py
+      - name: Verificar cookies.txt
+        run: head -n 5 cookies.txt
+
+      - name: Executar o script
         run: python gerar_iptv.py
 
-      - name: Subir alterações para o GitHub
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verificar conteúdo do iptv.m3u8
+        run: |
+          if [ -s iptv.m3u8 ]; then
+            echo "[OK] Arquivo gerado com sucesso:"
+            head -n 10 iptv.m3u8
+          else
+            echo "[ERRO] Arquivo iptv.m3u8 está vazio!"
+            exit 1
+          fi
+
+      - name: Subir alterações para o repositório
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add iptv.m3u8
           git commit -m "Atualização automática do IPTV"
-          git push
+          git push || echo "Nada a atualizar."
+
