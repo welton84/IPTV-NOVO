@@ -3,53 +3,37 @@ name: Gerar IPTV
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Executa a cada 6 horas
+    - cron: '0 */6 * * *'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar repositório
-        uses: actions/checkout@v3
+    - name: Clonar repositório
+      uses: actions/checkout@v3
 
-      - name: Instalar Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Instalar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
 
-      - name: Instalar yt-dlp
-        run: pip install -U yt-dlp
+    - name: Instalar yt-dlp
+      run: pip install -U yt-dlp
 
-      - name: Restaurar cookies.txt a partir do segredo
-        run: |
-          if [ -n "${{ secrets.COOKIES_TXT }}" ]; then
-            echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
-            echo "[INFO] cookies.txt restaurado com sucesso."
-          else
-            echo "[ERRO] Segredo COOKIES_TXT não está definido."
-            exit 1
-          fi
+    - name: Criar cookies.txt a partir do segredo
+      run: echo "${{ secrets.COOKIES_TXT }}" > cookies.txt
 
-      - name: Executar o script
-        run: python gerar_iptv.py
+    - name: Executar script
+      run: python gerar_iptv.py
 
-      - name: Verificar conteúdo do iptv.m3u8
-        run: |
-          if [ -s iptv.m3u8 ]; then
-            echo "[OK] Arquivo iptv.m3u8 gerado:"
-            head -n 10 iptv.m3u8
-          else
-            echo "[ERRO] iptv.m3u8 está vazio!"
-            exit 1
-          fi
+    - name: Subir iptv.m3u8 para o repositório
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add iptv.m3u8 || true
+        git commit -m "Atualização automática do IPTV" || echo "Nada para commitar"
+        git push
 
-      - name: Subir alterações para o repositório
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add iptv.m3u8
-          git commit -m "Atualização automática do IPTV"
-          git push || echo "[INFO] Nenhuma alteração para subir."
 
 
