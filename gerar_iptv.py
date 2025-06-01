@@ -1,10 +1,17 @@
+import os
 import yt_dlp
 import json
-import os
 import time
 from yt_dlp.utils import DownloadError
 
-NAVEGADOR = "chrome"  # Mude para "firefox" se preferir
+# --- Salva o conteúdo do segredo COOKIES_TXT em cookies.txt (se existir) ---
+cookies_env = os.getenv("COOKIES_TXT")
+if cookies_env:
+    with open("cookies.txt", "w", encoding="utf-8") as f:
+        f.write(cookies_env)
+    print("[INFO] cookies.txt criado a partir do segredo COOKIES_TXT.")
+else:
+    print("[AVISO] Variável COOKIES_TXT não encontrada. Rodando sem cookies.")
 
 def carregar_urls_e_limite(caminho='infos.json'):
     try:
@@ -18,35 +25,18 @@ def carregar_urls_e_limite(caminho='infos.json'):
         return [], 20
 
 def get_ytdlp_opts(cookies='cookies.txt'):
-    # Tenta usar cookies do navegador
-    try:
-        # Testa se o navegador está acessível para extrair os cookies
-        tmp_opts = {
-            "quiet": True,
-            "skip_download": True,
-            "cookiesfrombrowser": NAVEGADOR
-        }
-        yt_dlp.YoutubeDL(tmp_opts)  # Testa se não levanta exceção
-        print(f"[INFO] Usando cookies diretamente do navegador: {NAVEGADOR}")
+    if cookies and os.path.exists(cookies):
+        print(f"[INFO] Usando cookies do arquivo: {cookies}")
         return {
             "quiet": True,
             "skip_download": True,
-            "cookiesfrombrowser": NAVEGADOR
+            "cookiefile": cookies
         }
-    except Exception as e:
-        # Se falhar, tenta cookies.txt
-        if cookies and os.path.exists(cookies):
-            print(f"[INFO] Usando cookies do arquivo: {cookies}")
-            return {
-                "quiet": True,
-                "skip_download": True,
-                "cookiefile": cookies
-            }
-        print("[INFO] Rodando sem cookies (apenas vídeos públicos ou que não exigem login).")
-        return {
-            "quiet": True,
-            "skip_download": True
-        }
+    print("[INFO] Rodando sem cookies (apenas vídeos públicos ou que não exigem login).")
+    return {
+        "quiet": True,
+        "skip_download": True
+    }
 
 def extrair_todos_formatos(video_url, ytdlp_opts):
     try:
