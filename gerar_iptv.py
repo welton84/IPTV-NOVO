@@ -4,8 +4,7 @@ import os
 import time
 from yt_dlp.utils import DownloadError
 
-# Defina o navegador que deseja usar para cookies
-NAVEGADOR = "chrome"  # ou "firefox", "edge", etc.
+NAVEGADOR = "chrome"  # Mude para "firefox" se preferir
 
 def carregar_urls_e_limite(caminho='infos.json'):
     try:
@@ -21,18 +20,21 @@ def carregar_urls_e_limite(caminho='infos.json'):
 def get_ytdlp_opts(cookies='cookies.txt'):
     # Tenta usar cookies do navegador
     try:
-        import yt_dlp.cookies
-        # Testa se consegue extrair cookies do navegador
-        cookies_from_browser = {"cookiesfrombrowser": NAVEGADOR}
-        yt_dlp.YoutubeDL(cookies_from_browser)
+        # Testa se o navegador está acessível para extrair os cookies
+        tmp_opts = {
+            "quiet": True,
+            "skip_download": True,
+            "cookiesfrombrowser": NAVEGADOR
+        }
+        yt_dlp.YoutubeDL(tmp_opts)  # Testa se não levanta exceção
         print(f"[INFO] Usando cookies diretamente do navegador: {NAVEGADOR}")
         return {
             "quiet": True,
             "skip_download": True,
             "cookiesfrombrowser": NAVEGADOR
         }
-    except Exception:
-        # Se falhar, tenta o cookies.txt
+    except Exception as e:
+        # Se falhar, tenta cookies.txt
         if cookies and os.path.exists(cookies):
             print(f"[INFO] Usando cookies do arquivo: {cookies}")
             return {
