@@ -4,6 +4,9 @@ import os
 import time
 from yt_dlp.utils import DownloadError
 
+# Defina o navegador que deseja usar para cookies
+NAVEGADOR = "chrome"  # ou "firefox", "edge", etc.
+
 def carregar_urls_e_limite(caminho='infos.json'):
     try:
         with open(caminho, 'r', encoding='utf-8') as f:
@@ -15,18 +18,35 @@ def carregar_urls_e_limite(caminho='infos.json'):
         print(f"[ERRO] Falha ao carregar infos.json: {e}")
         return [], 20
 
-def extrair_todos_formatos(video_url, cookies='cookies.txt'):
-    ytdlp_opts = {
-        "quiet": True,
-        "skip_download": True
-    }
+def get_ytdlp_opts(cookies='cookies.txt'):
+    # Tenta usar cookies do navegador
+    try:
+        import yt_dlp.cookies
+        # Testa se consegue extrair cookies do navegador
+        cookies_from_browser = {"cookiesfrombrowser": NAVEGADOR}
+        yt_dlp.YoutubeDL(cookies_from_browser)
+        print(f"[INFO] Usando cookies diretamente do navegador: {NAVEGADOR}")
+        return {
+            "quiet": True,
+            "skip_download": True,
+            "cookiesfrombrowser": NAVEGADOR
+        }
+    except Exception:
+        # Se falhar, tenta o cookies.txt
+        if cookies and os.path.exists(cookies):
+            print(f"[INFO] Usando cookies do arquivo: {cookies}")
+            return {
+                "quiet": True,
+                "skip_download": True,
+                "cookiefile": cookies
+            }
+        print("[INFO] Rodando sem cookies (apenas vídeos públicos ou que não exigem login).")
+        return {
+            "quiet": True,
+            "skip_download": True
+        }
 
-    if cookies and os.path.exists(cookies):
-        ytdlp_opts["cookiefile"] = cookies
-        print(f"[INFO] Usando cookies: {cookies}")
-    else:
-        print("[INFO] Rodando sem cookies.")
-
+def extrair_todos_formatos(video_url, ytdlp_opts):
     try:
         ytdlp = yt_dlp.YoutubeDL(ytdlp_opts)
         stream_link = ytdlp.extract_info(video_url, download=False)
@@ -61,19 +81,14 @@ def extrair_todos_formatos(video_url, cookies='cookies.txt'):
         print(f"[ERRO] Falha ao extrair formatos de {video_url}: {e}")
         return []
 
-def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=20):
+def gerar_m3u8(urls, ytdlp_opts, limite_por_playlist=20):
     with open("iptv.m3u8", "w", encoding="utf-8") as f:
         f.write("#EXTM3U\n\n")
 
         for url in urls:
             print(f"[INFO] Processando: {url}")
             try:
-                ytdlp_check = yt_dlp.YoutubeDL({
-                    "quiet": True,
-                    "skip_download": True,
-                    "cookiefile": cookies if os.path.exists(cookies) else None
-                })
-
+                ytdlp_check = yt_dlp.YoutubeDL(ytdlp_opts)
                 stream_link = ytdlp_check.extract_info(url, download=False)
 
                 if stream_link.get('_type') == 'playlist':
@@ -83,12 +98,12 @@ def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=20):
                         if not video_id:
                             continue
                         video_url = f"https://www.youtube.com/watch?v={video_id}"
-                        formatos = extrair_todos_formatos(video_url, cookies)
+                        formatos = extrair_todos_formatos(video_url, ytdlp_opts)
                         for titulo, ext, height, link in formatos:
                             f.write(f'#EXTINF:-1 tvg-name="{titulo} {height}p" group-title="YouTube", {titulo} ({height}p)\n{link}\n\n')
                         time.sleep(2)
                 else:
-                    formatos = extrair_todos_formatos(url, cookies)
+                    formatos = extrair_todos_formatos(url, ytdlp_opts)
                     for titulo, ext, height, link in formatos:
                         f.write(f'#EXTINF:-1 tvg-name="{titulo} {height}p" group-title="YouTube", {titulo} ({height}p)\n{link}\n\n')
                     time.sleep(2)
@@ -102,9 +117,8 @@ def gerar_m3u8(urls, cookies='cookies.txt', limite_por_playlist=20):
 
 if __name__ == "__main__":
     urls, limite = carregar_urls_e_limite()
+    ytdlp_opts = get_ytdlp_opts()
     if urls:
-        gerar_m3u8(urls, limite_por_playlist=limite)
+        gerar_m3u8(urls, ytdlp_opts, limite_por_playlist=limite)
     else:
         print("[AVISO] Nenhuma URL válida encontrada no infos.json.")
-
-
