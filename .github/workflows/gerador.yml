@@ -2,38 +2,39 @@ name: Gerar IPTV
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * *'  # Executa todo dia às 12:00 UTC
 
 jobs:
-  gerar:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar repositório
+      - name: Clonar o repositório
         uses: actions/checkout@v3
 
-      - name: Configurar Python
+      - name: Instalar Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Instalar dependências
-        run: |
-          python -m pip install --upgrade pip
-          pip install yt-dlp
+        run: pip install -U yt-dlp
 
-      - name: Restaurar cookies.txt a partir de base64
-        run: echo "${{ secrets.COOKIES_B64 }}" | base64 -d > cookies.txt
+      - name: Criar cookies.txt a partir do segredo
+        run: echo "${{ secrets.cookies_txt }}" > cookies.txt
 
-      - name: Executar script gerar_iptv.py
+      - name: Executar o script Python
         run: python gerar_iptv.py
 
-      - name: Confirmar alterações (caso iptv.m3u8 tenha sido gerado)
+      - name: Subir iptv.m3u8 para o repositório
         run: |
           git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add iptv.m3u8 || true
-          git commit -m "Atualizar iptv.m3u8" || echo "Nada para commitar"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add iptv.m3u8
+          git commit -m "Atualizar iptv.m3u8 automático" || echo "Sem alterações para commit"
           git push
+
 
 
 
